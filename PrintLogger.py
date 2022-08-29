@@ -25,7 +25,7 @@ class PrintLogger:
     _logger: logging.Logger = None
 
     class TimeFormatter(logging.Formatter):
-        """logging.Formatter에 타임존 내부 설정"""
+        """Setting internal time zone in logging.Formatter"""
         timezone = 'Asia/Seoul'
         def converter(self, timestamp):
             dt = datetime.fromtimestamp(timestamp, tz=pytz.UTC)
@@ -49,7 +49,12 @@ class PrintLogger:
             pass
         else:
             if tz is not None:
-                # 타임존 전역 설정
+                # Setting Global TimeZone
+                """
+                This parameter 'tz' does not directly modify the server's time zone.
+                Changes the global time zone to be used by the current Python runtime.
+                This is useful when the server's time zone affects other programs.
+                """
                 import os, time
                 os.environ['TZ'] = tz
                 time.tzset()
