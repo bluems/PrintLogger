@@ -1,11 +1,21 @@
-from datetime import datetime
-import sys
-import subprocess
-import pytz
 import logging
 import logging.handlers
-
+import subprocess
+import sys
+from typing import Union
+from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
+from logging.__init__ import CRITICAL, ERROR, WARNING, INFO, DEBUG
+
+
+try:
+    import pytz
+except:
+    subprocess.check_call([
+        sys.executable,
+        '-m', 'pip', 'install', '--upgrade', 'pytz'
+    ])
+    import pytz
 
 try:
     from rich.logging import RichHandler
@@ -24,9 +34,20 @@ class PrintLogger:
 
     _logger: logging.Logger = None
 
+    str_Level = {
+        'CRITICAL': logging.CRITICAL,
+        'FATAL': logging.FATAL,
+        'ERROR': logging.ERROR,
+        'WARNING': logging.WARNING,
+        'INFO': logging.INFO,
+        'DEBUG': logging.DEBUG,
+        'NOTSET': logging.NOTSET,
+    }
+
     class TimeFormatter(logging.Formatter):
-        """Setting internal time zone in logging.Formatter"""
+        """logging.Formatter에 타임존 내부 설정"""
         timezone = 'Asia/Seoul'
+
         def converter(self, timestamp):
             dt = datetime.fromtimestamp(timestamp, tz=pytz.UTC)
             return dt.astimezone(pytz.timezone(self.timezone))
@@ -42,16 +63,17 @@ class PrintLogger:
                     s = dt.isoformat()
             return s
 
-
     @staticmethod
-    def set_logger(logging_level: Union[int, str], logging_path: str="./log.log", logging_type: str="time", tz = None, formatter_tz = None):
+    def set_logger(logging_level: Union[int, str], logging_path: str = "./log.log", logging_type: str = "time",
+                   tz: str = None, formatter_tz: str = None):
         """
         Initialization method for logging.\n
         logging_type: "time": a TimedRotatingFileHandler that rotates midnight, "any keywords": calls a generic FileHandler.\n
+        tz, formatter_tz: The global timezone affects not only the time of the output format, but also the time of the file rotation as a whole.\n
 
         :param logging_level: Specify the minimum level you want to print the log. See the Logging Package for more details.
         :param logging_path: Specify the path to save the log file.
-        :param logging_type: Specify a handler to log. 
+        :param logging_type: Specify a handler to log.
         :param tz: Specifies the global time zone.
         :param formatter_tz: Specifies the format-only time zone.
         """
@@ -59,27 +81,22 @@ class PrintLogger:
             pass
         else:
             if tz is not None:
-                # Setting Global TimeZone
-                """
-                This parameter 'tz' does not directly modify the server's time zone.
-                Changes the global time zone to be used by the current Python runtime.
-                This is useful when the server's time zone affects other programs.
-                """
+                # 타임존 전역 설정
                 import os, time
                 os.environ['TZ'] = tz
                 time.tzset()
                 PrintLogger.TimeFormatter.timezone = tz
-            
+
             if formatter_tz is not None:
                 PrintLogger.TimeFormatter.timezone = formatter_tz
 
             logging.basicConfig(
-                level = logging_level,
-                format = PrintLogger.RICH_FORMAT,
+                level=logging_level,
+                format=PrintLogger.RICH_FORMAT,
                 handlers=[RichHandler(rich_tracebacks=True)]
             )
 
-            logger = logging.getLogger ("rich")
+            logger = logging.getLogger("rich")
 
             if logging_type == "time":
                 PrintLogger.file_handler = PrintLogger._gen_time_handler(logging_path)
@@ -96,7 +113,7 @@ class PrintLogger:
     def _gen_file_handler(path: str) -> logging.FileHandler:
         return logging.FileHandler(
             path,
-            mode = "a",
+            mode="a",
             encoding="utf-8"
         )
 
@@ -104,7 +121,7 @@ class PrintLogger:
     def _gen_time_handler(path: str):
         handler = TimedRotatingFileHandler(
             path,
-            when = "midnight",
+            when="midnight",
             interval=1,
             encoding="utf-8"
         )
@@ -112,7 +129,7 @@ class PrintLogger:
         return handler
 
     @staticmethod
-    def change_handler(path: str, logging_type: str="time"):
+    def change_handler(path: str, logging_type: str = "time"):
         """
         Method for changing handler settings.\n
         You can change the log storage path and log type.\n
@@ -135,7 +152,7 @@ class PrintLogger:
         PrintLogger.file_handler.setFormatter(PrintLogger.TimeFormatter(PrintLogger.FILE_HANDLER_FORMAT))
         PrintLogger._logger.addHandler(PrintLogger.file_handler)
         PrintLogger._logger.disabled = False
-        
+
     @staticmethod
     def handle_exception(exc_type, exc_value, exc_traceback):
         PrintLogger._logger.error(
@@ -150,7 +167,7 @@ class PrintLogger:
     @staticmethod
     def info(msg, *args, **kwargs):
         PrintLogger._logger.info(msg, *args, **kwargs)
-    
+
     @staticmethod
     def warning(msg, *args, **kwargs):
         PrintLogger._logger.warning(msg, *args, **kwargs)
@@ -169,4 +186,10 @@ class PrintLogger:
 
     @staticmethod
     def log(level, msg, *args, **kwargs):
+        if isinstance(level, str):
+            if level in PrintLogger.str_Level:
+                level = PrintLogger.str_Level[level]
+            else:
+                raise ValueError("Invalid level name.")
+
         PrintLogger._logger.log(level, msg, *args, **kwargs)
