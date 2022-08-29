@@ -44,7 +44,17 @@ class PrintLogger:
 
 
     @staticmethod
-    def set_logger(logging_level, logging_path: str="./log.log", logging_type: str="time", tz = None, formatter_tz = None):
+    def set_logger(logging_level: Union[int, str], logging_path: str="./log.log", logging_type: str="time", tz = None, formatter_tz = None):
+        """
+        Initialization method for logging.\n
+        logging_type: "time": a TimedRotatingFileHandler that rotates midnight, "any keywords": calls a generic FileHandler.\n
+
+        :param logging_level: Specify the minimum level you want to print the log. See the Logging Package for more details.
+        :param logging_path: Specify the path to save the log file.
+        :param logging_type: Specify a handler to log. 
+        :param tz: Specifies the global time zone.
+        :param formatter_tz: Specifies the format-only time zone.
+        """
         if PrintLogger._logger is not None:
             pass
         else:
@@ -103,6 +113,15 @@ class PrintLogger:
 
     @staticmethod
     def change_handler(path: str, logging_type: str="time"):
+        """
+        Method for changing handler settings.\n
+        You can change the log storage path and log type.\n
+        This is useful when changing the log storage location for specific situations, such as detecting an external storage device.\n
+        logging_type: "time": a TimedRotatingFileHandler that rotates midnight, "any keywords": calls a generic FileHandler.\n
+
+        :param path: Specify the path to save the log file.
+        :param logging_type: Specify a handler to log.
+        """
         PrintLogger._logger.disabled = True
         PrintLogger._logger.removeHandler(PrintLogger.file_handler)
         PrintLogger.file_handler.close()
